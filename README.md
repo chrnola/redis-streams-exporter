@@ -22,3 +22,5 @@ $ docker build .
 | `REDIS_STREAM_KEY` | Yes | The name of the Stream to monitor. |
 | `REDIS_DATABASE` | No, defaults to 0 | The Redis database where the Stream to-be-monitored exists. |
 | `REDIS_POLL_INTERVAL_MS` | No, defaults to 10000 (10s) | The amount of time that the exporter will wait in between Redis polls. |
+| `PROMETHEUS_HOSTNAME` | No, defaults to "+" | The interface to bind the Prometheus server to. |
+| `PROMETHEUS_PORT` | No, defaults to 3000. | The TCP port for the Prometheus server to listen on. |
