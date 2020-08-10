@@ -65,9 +65,20 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration) =
         consumers
         |> Array.iter(fun ci ->
             printfn
-                "Got consumer info|group=%s|consumers=%i"
+                "Got consumer info|group=%s|consumers=%i|pending=%i|last=%s"
                 ci.Group.Name
                 ci.Group.ConsumerCount
+                ci.Group.PendingMessageCount
+                ci.Group.LastDeliveredId
+
+            ci.Consumers
+            |> Array.iter(fun c ->
+                printfn
+                    "Consumer details|name=%s|pending=%i|idle=%i"
+                    c.Name
+                    c.PendingMessageCount
+                    c.IdleTimeInMilliseconds
+            )
         )
         // # consumers, last deliv, # pending, name
 

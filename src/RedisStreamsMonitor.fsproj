@@ -10,6 +10,7 @@
   <ItemGroup>
     <PackageReference Include="FsConfig" Version="2.1.6" />
     <PackageReference Include="TypeShape" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="1.0.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.1.58" />
   </ItemGroup>
 </Project>
