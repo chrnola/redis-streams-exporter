@@ -7,10 +7,6 @@ open Prometheus
 type MonitorConfiguration =
     { PollInterval : TimeSpan
       StreamKey : string }
-with
-    static member Default key =
-        { PollInterval = TimeSpan.FromSeconds 30.
-          StreamKey = key }
 
 type private ConsumerInfo =
     { Group: StreamGroupInfo
