@@ -1,4 +1,7 @@
-![](https://github.com/chrnola/redis-streams-monitor/workflows/Docker/badge.svg)
+[![Docker Build Status](https://img.shields.io/docker/cloud/build/chrnola/redis-streams-exporter)](https://hub.docker.com/r/chrnola/redis-streams-exporter/builds)
+![Latest Docker Tag](https://img.shields.io/docker/v/chrnola/redis-streams-exporter?sort=semver)
+![Docker Image Size](https://img.shields.io/docker/image-size/chrnola/redis-streams-exporter?sort=semver)
+[![License](https://img.shields.io/github/license/chrnola/redis-streams-exporter)](https://github.com/chrnola/redis-streams-exporter/blob/canon/LICENSE)
 
 # Redis Streams Exporter
 
@@ -9,9 +12,7 @@ A tool for exposing data about Redis Streams consumer groups as Prometheus metri
 Assuming the Redis you wish to monitor is accessible at `localhost:6379` and the Stream you wish to monitor is named `my-stream-key`:
 
 ```bash
-$ docker build -t redis-streams-monitor .
-
-$ docker run --env REDIS_STREAM_KEY=my-stream-key -p 3000:3000 -it redis-streams-monitor:latest
+$ docker run --env REDIS_STREAM_KEY=my-stream-key -p 3000:3000 -it chrnola/redis-streams-exporter:latest
 ```
 
 Your Prometheus metrics will be available at `http://localhost:3000/metrics`.
