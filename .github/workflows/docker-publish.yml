@@ -53,7 +53,7 @@ jobs:
 
       - name: Push image
         run: |
-          IMAGE_ID=$DOCKER_USERNAME/${{ github.repository }}/$IMAGE_NAME
+          IMAGE_ID=$DOCKER_USERNAME/$IMAGE_NAME
 
           # Change all uppercase to lowercase
           IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
