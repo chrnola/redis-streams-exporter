@@ -1,6 +1,6 @@
 [![Docker Build Status](https://github.com/chrnola/redis-streams-monitor/workflows/Docker/badge.svg)](https://github.com/chrnola/redis-streams-exporter/actions?query=workflow%3ADocker)
-![Latest Docker Tag](https://img.shields.io/docker/v/chrnola/redis-streams-exporter?sort=semver)
-![Docker Image Size](https://img.shields.io/docker/image-size/chrnola/redis-streams-exporter?sort=semver)
+[![Latest Docker Tag](https://img.shields.io/docker/v/chrnola/redis-streams-exporter?sort=semver)](https://hub.docker.com/r/chrnola/redis-streams-exporter)
+[![Docker Image Size](https://img.shields.io/docker/image-size/chrnola/redis-streams-exporter?sort=semver)](https://hub.docker.com/r/chrnola/redis-streams-exporter)
 [![License](https://img.shields.io/github/license/chrnola/redis-streams-exporter)](https://github.com/chrnola/redis-streams-exporter/blob/canon/LICENSE)
 
 # Redis Streams Exporter
