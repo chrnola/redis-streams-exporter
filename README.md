@@ -26,10 +26,11 @@ All configuration is handled via environment variables.
 | --- | --- | --- |
 | `REDIS_STREAM_KEY` | Yes | The name of the Stream to monitor. |
 | `REDIS_CONNECTION_STRING` | No, defaults to "localhost" | Any valid `StackExchange.Redis` connection string, see [docs](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#basic-configuration-strings). |
-| `REDIS_DATABASE` | No, defaults to 0 | The Redis database where the Stream to-be-monitored exists. |
-| `REDIS_POLL_INTERVAL_MS` | No, defaults to 10000 (10s) | The amount of time that the exporter will wait in between Redis polls. |
+| `REDIS_DATABASE` | No, defaults to "0" | The Redis database where the Stream to-be-monitored exists. |
+| `REDIS_POLL_INTERVAL_MS` | No, defaults to "10000" (10s) | The amount of time that the exporter will wait in between Redis polls. |
 | `PROMETHEUS_HOSTNAME` | No, defaults to "+" | The interface to bind the Prometheus server to. |
-| `PROMETHEUS_PORT` | No, defaults to 3000. | The TCP port for the Prometheus server to listen on. |
+| `PROMETHEUS_PORT` | No, defaults to "3000". | The TCP port for the Prometheus server to listen on. |
+| `APP_ENABLE_VERBOSE_LOGGING` | No, defaults to "false". | If "true", writes detailed log events to stdout. |
 
 ## Metrics
 

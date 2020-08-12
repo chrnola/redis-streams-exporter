@@ -12,7 +12,7 @@ type private ConsumerInfo =
     { Group: StreamGroupInfo
       Consumers: StreamConsumerInfo[] }
 
-type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration) =
+type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration, ?logger: Serilog.ILogger) =
     /// The key of the Stream to monitor, as a `RedisKey`
     let streamKey = RedisKey config.StreamKey
 
@@ -22,6 +22,13 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration) =
         |> Math.Ceiling
         |> int
         |> Async.Sleep
+
+    let doesKeyExist () = async {
+        let! numKeys =
+            database.KeyExistsAsync [| streamKey |]
+            |> Async.AwaitTask
+        return numKeys = 1L
+    }
 
     let getStreamInfo () =
         database.StreamInfoAsync streamKey
@@ -149,12 +156,14 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration) =
     let pollForMetrics () = async {
         let! stream = getStreamInfo ()
         do recordStreamLevelMetrics stream
-        printfn
-            "Got stream info|first=%s|last=%s|length=%i|groups=%i"
-            (stream.FirstEntry.Id.ToString())
-            (stream.LastEntry.Id.ToString())
-            stream.Length
-            stream.ConsumerGroupCount
+        do logger
+           |> Option.iter (fun log ->
+                log.Debug("Got stream info {@first} {@last} {@length} {@groupCount} {@lastGeneratedId}",
+                          stream.FirstEntry.Id.ToString(),
+                          stream.LastEntry.Id.ToString(),
+                          stream.Length,
+                          stream.ConsumerGroupCount,
+                          stream.LastGeneratedId.ToString()))
 
         let! groups = getGroups ()
         let! consumers =
@@ -165,28 +174,32 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration) =
         consumers
         |> Array.iter(fun ci ->
             do recordGroupLevelMetrics ci.Group
-            printfn
-                "Got consumer info|group=%s|consumers=%i|pending=%i|last=%s"
-                ci.Group.Name
-                ci.Group.ConsumerCount
-                ci.Group.PendingMessageCount
-                ci.Group.LastDeliveredId
+            do logger
+               |> Option.iter (fun log ->
+                    log.Debug("Got group info {@name} {@consumerCount} {@pendingCount} {@lastDeliveredId}",
+                              ci.Group.Name, ci.Group.ConsumerCount, ci.Group.PendingMessageCount,
+                              ci.Group.LastDeliveredId))
 
             ci.Consumers
             |> Array.iter(fun c ->
                 do recordConsumerLevelMetrics ci.Group.Name c
-                printfn
-                    "Consumer details|name=%s|pending=%i|idle=%i"
-                    c.Name
-                    c.PendingMessageCount
-                    c.IdleTimeInMilliseconds
+                do logger
+                   |> Option.iter (fun log ->
+                        log.Debug("Got consumer info {@name} {@pendingCount} {@idleMs}",
+                                  c.Name, c.PendingMessageCount, c.IdleTimeInMilliseconds))
             )
         )
     }
 
     /// The main poll loop that will run indefinitely
     member this.Run() = async {
-        do! pollForMetrics ()
+        match! doesKeyExist () with
+        | true ->
+            do! pollForMetrics ()
+        | false ->
+            do logger
+               |> Option.iter (fun log ->
+                    log.Debug("Key {@key} does not exist, snoozing", config.StreamKey))
         do! snooze
         return! this.Run()
     }
