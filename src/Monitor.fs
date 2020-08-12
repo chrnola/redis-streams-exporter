@@ -100,17 +100,21 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration, ?logger:
     /// This function returns the parsed epoch time. Returning `Some`
     /// if it can be parsed, and otherwise `None`.
     let tryParseTimestamp (redisId: string) : DateTimeOffset option =
-        match redisId.Split('-') with
-        | [| time; _uniqueifier |] ->
-            match Int64.TryParse time with
-            | (false, _) ->
-                None
-            | (true, num) ->
-                num
-                |> DateTimeOffset.FromUnixTimeMilliseconds
-                |> Some
-        | _ ->
+        match redisId with
+        | null ->
             None
+        | redisId' ->
+            match redisId'.Split('-') with
+            | [| time; _uniqueifier |] ->
+                match Int64.TryParse time with
+                | (false, _) ->
+                    None
+                | (true, num) ->
+                    num
+                    |> DateTimeOffset.FromUnixTimeMilliseconds
+                    |> Some
+            | _ ->
+                None
 
     let recordStreamLevelMetrics (stream: StreamInfo) =
         streamLength.WithLabels(config.StreamKey).Set(stream.Length |> float)

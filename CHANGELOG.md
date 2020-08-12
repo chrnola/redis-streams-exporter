@@ -5,6 +5,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+## 0.4 - 2020-08-12
+### Fixed
+- No longer crashes when the stream is not fully initialized
+
 ## 0.3 - 2020-08-12
 ### Added
 - Added Serilog for structured logging
