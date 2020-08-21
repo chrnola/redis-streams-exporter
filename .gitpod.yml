@@ -1,0 +1,10 @@
+image: gitpod/workspace-dotnet
+
+tasks:
+  - before: dotnet restore
+  - init: dotnet build src
+    command: dotnet run --project src
+
+vscode:
+  extensions:
+    - Ionide.Ionide-fsharp@4.5.0:0qxXuhq6eO066etkNQrKCQ==
