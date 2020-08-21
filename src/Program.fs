@@ -1,48 +1,55 @@
 module RedisStreamsMonitor.Main
 
 open System
-open FsConfig
 open StackExchange
 open Serilog
 open Serilog.Formatting.Compact
 
-[<FsConfig.Convention("REDIS", Separator="_")>]
-type RedisConfig =
-  { StreamKey : string
-    [<FsConfig.DefaultValue("localhost")>]
-    ConnectionString : string
-    [<FsConfig.DefaultValue("0")>]
-    Database : uint8
-    [<FsConfig.DefaultValue("10000")>]
-    PollIntervalMs : uint32 }
+let app (redisConfig: Config.RedisConfig) (promConfig: Config.PrometheusConfig) (log: Serilog.ILogger option) = async {
+    // Connect to Redis
+    let parsedRedisConfig = Redis.ConfigurationOptions.Parse(redisConfig.ConnectionString)
 
-[<FsConfig.Convention("PROMETHEUS", Separator="_")>]
-type PrometheusConfig =
-  { [<FsConfig.DefaultValue("+")>]
-    Hostname : string
-    [<FsConfig.DefaultValue("3000")>]
-    Port : uint16 }
+    do
+        let sanitizedConfig =
+            let clone = parsedRedisConfig.Clone()
+            if not (String.IsNullOrWhiteSpace clone.Password) then
+                clone.Password <- "***"
+            clone
 
-[<FsConfig.Convention("APP", Separator="_")>]
-type AppConfig =
-  { [<FsConfig.DefaultValue("false")>]
-    EnableVerboseLogging: bool }
+        log |> Option.iter (fun logger ->
+            logger.Information("Initializing StackExchange.Redis client with {@config}",
+                            sanitizedConfig))
 
-let parseConfig<'T when 'T: not struct> () =
-    match FsConfig.EnvConfig.Get<'T>() with
-    | Ok config -> config
-    | Error error ->
-        match error with
-        | ConfigParseError.NotFound envVarName ->
-            failwithf "Environment variable %s not found" envVarName
-        | ConfigParseError.BadValue (envVarName, value) ->
-            failwithf "Environment variable %s has invalid value '%s'" envVarName value
-        | ConfigParseError.NotSupported msg ->
-            failwith msg
+    use redis = Redis.ConnectionMultiplexer.Connect(parsedRedisConfig)
+    let db = redis.GetDatabase(int(redisConfig.Database))
+
+    // Start Prometheus server
+    use server = new Prometheus.MetricServer(promConfig.Hostname, int(promConfig.Port))
+    do server.Start() |> ignore
+
+    log |> Option.iter (fun logger ->
+        logger.Information("Prometheus server listening on http://{@hostname}:{@port}",
+                           promConfig.Hostname, promConfig.Port))
+
+    // Start polling loop
+    let monitorConfig =
+        { MonitorConfiguration.PollInterval =
+            redisConfig.PollIntervalMs
+            |> float
+            |> TimeSpan.FromMilliseconds
+          StreamKey = redisConfig.StreamKey }
+
+    log |> Option.iter (fun logger ->
+        logger.Information ("Initializing Stream monitor on database {@db} with {@config}", db, monitorConfig))
+
+    let monitor = DatabaseMonitor(db, monitorConfig, ?logger=log)
+
+    return! monitor.Run()
+}
 
 [<EntryPoint>]
 let main _argv =
-    let appConfig = parseConfig<AppConfig>()
+    let appConfig = Config.AppConfig.ParseFromEnv ()
     use log =
         let logLevel =
             match appConfig.EnableVerboseLogging with
@@ -50,45 +57,14 @@ let main _argv =
             | false -> Events.LogEventLevel.Information
         LoggerConfiguration()
             .MinimumLevel.Is(logLevel)
-            .WriteTo.Console(CompactJsonFormatter()).CreateLogger();
+            .WriteTo.Console(CompactJsonFormatter()).CreateLogger()
 
     try
-        // Connect to Redis
-        let redisConfig = parseConfig<RedisConfig>()
-        let parsedRedisConfig = Redis.ConfigurationOptions.Parse(redisConfig.ConnectionString)
+        let redisConfig = Config.RedisConfig.ParseFromEnv ()
+        let promConfig = Config.PrometheusConfig.ParseFromEnv ()
+        let logger = log :> Serilog.ILogger
 
-        do
-            let sanitizedConfig =
-                let clone = parsedRedisConfig.Clone()
-                if not (String.IsNullOrWhiteSpace clone.Password) then
-                    clone.Password <- "***"
-                clone
-            log.Information("Initializing StackExchange.Redis client with {@config}",
-                            sanitizedConfig)
-
-        use redis = Redis.ConnectionMultiplexer.Connect(parsedRedisConfig)
-        let db = redis.GetDatabase(int(redisConfig.Database))
-
-        // Start Prometheus server
-        let promConfig = parseConfig<PrometheusConfig>()
-        use server = new Prometheus.MetricServer(promConfig.Hostname, int(promConfig.Port))
-        do server.Start() |> ignore
-        log.Information("Prometheus server listening on http://{@hostname}:{@port}",
-                        promConfig.Hostname, promConfig.Port)
-
-        // Start polling loop
-        let monitorConfig =
-            { MonitorConfiguration.PollInterval =
-                redisConfig.PollIntervalMs
-                |> float
-                |> TimeSpan.FromMilliseconds
-              StreamKey = redisConfig.StreamKey }
-
-        log.Information("Initializing Stream monitor on database {@db} with {@config}",
-                        db, monitorConfig)
-        let monitor = DatabaseMonitor(db, monitorConfig, log)
-
-        monitor.Run()
+        app redisConfig promConfig (Some logger)
         |> Async.RunSynchronously
 
         // TODO: Trap kill signal, tear down poll loop and server gracefully
