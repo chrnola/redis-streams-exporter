@@ -20,10 +20,12 @@ type ScrapedMetric =
     { Prefix : string
       Metric : float }
 
+let [<Literal>] SPACE: char = ' '
+
 type PromClient(uri: System.Uri) =
     let client = new System.Net.Http.HttpClient()
 
-    member __.Fetch() = async {
+    member __.Fetch(): Async<ScrapedMetric[]> = async {
         let! response = client.GetStringAsync(uri) |> Async.AwaitTask
 
         if System.String.IsNullOrWhiteSpace response then
@@ -34,12 +36,17 @@ type PromClient(uri: System.Uri) =
             |> Array.filter(System.String.IsNullOrEmpty >> not)
             |> Array.filter(fun line -> not (line.StartsWith("#")))
             |> Array.map(fun line ->
-                let spaceSplits = line.Split(' ')
-                let metric = spaceSplits |> Array.last |> System.Double.Parse
-                let prefix =
-                    spaceSplits
-                    |> Array.fold(fun sb)
-                { ScrapedMetric.Prefix = line; Metric = metric }
+                let backwardsSplits =
+                    line.Split SPACE
+                    |> List.ofArray
+                    |> List.rev
+
+                match backwardsSplits with
+                | last :: rest ->
+                    { ScrapedMetric.Prefix = System.String.Join(SPACE, List.rev rest)
+                      Metric = System.Double.Parse last }
+                | [] ->
+                    failwith "Could not parse"
             )
 
         return lines
@@ -61,8 +68,8 @@ let [<Fact>] ``My test`` () =
         { Hostname = "+"
           Port = uint16 promPort }
 
-    use httpClient = new System.Net.Http.HttpClient()
     let uri = sprintf "http://localhost:%i/metrics" promPort |> System.Uri
+    use promClient = new PromClient(uri)
 
     let app = RedisStreamsMonitor.Main.app redisConfig promConfig None
 
@@ -73,7 +80,12 @@ let [<Fact>] ``My test`` () =
         let client = AsyncRedisClient(db)
         let! _ = client.StreamAdd("stream", ("foo", "bar"), None)
 
-        httpClient.GetStringAsync(uri) |> Async.AwaitTask
+        let! scraped = promClient.Fetch()
+
+        scraped
+        |> Array.exists (fun s -> s.Prefix = "redis_stream_length{stream=\"stream\"}")
+        |> Assert.True
+
         complete := true
     }
 
