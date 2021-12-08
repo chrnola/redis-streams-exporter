@@ -8,7 +8,8 @@ open Serilog.Formatting.Compact
 
 [<FsConfig.Convention("REDIS", Separator="_")>]
 type RedisConfig =
-  { StreamKey : string list
+  { [<FsConfig.ListSeparator(';')>]
+    StreamKey : string list
     [<FsConfig.DefaultValue("localhost")>]
     ConnectionString : string
     [<FsConfig.DefaultValue("0")>]
