@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+        test: ["CMD", "redis-cli", "PING"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 5s
+
+  redis-streams-monitor:
+    build: ./
+    ports:
+      - "3000:3000"
+    environment:
+      REDIS_CONNECTION_STRING: "redis:6379"
+      REDIS_STREAM_KEY: "stream"
+      APP_ENABLE_VERBOSE_LOGGING: "true"
+      PROMETHEUS_PORT: "3000"
+    depends_on:
+      - redis
+
+  prometheus:
+    image: prom/prometheus:v2.31.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - "./prometheus.yml:/etc/prometheus/prometheus.yml"
+    depends_on:
+      - redis-streams-monitor
