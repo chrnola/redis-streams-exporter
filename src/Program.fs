@@ -8,7 +8,7 @@ open Serilog.Formatting.Compact
 
 [<FsConfig.Convention("REDIS", Separator="_")>]
 type RedisConfig =
-  { StreamKey : string
+  { StreamKey : string list
     [<FsConfig.DefaultValue("localhost")>]
     ConnectionString : string
     [<FsConfig.DefaultValue("0")>]
@@ -76,20 +76,25 @@ let main _argv =
         log.Information("Prometheus server listening on http://{@hostname}:{@port}",
                         promConfig.Hostname, promConfig.Port)
 
+        let pollInterval =
+            redisConfig.PollIntervalMs
+            |> float
+            |> TimeSpan.FromMilliseconds
+
         // Start polling loop
-        let monitorConfig =
-            { MonitorConfiguration.PollInterval =
-                redisConfig.PollIntervalMs
-                |> float
-                |> TimeSpan.FromMilliseconds
-              StreamKey = redisConfig.StreamKey }
+        do
+            redisConfig.StreamKey
+            |> List.map (fun key ->
+                let monitorConfig = { MonitorConfiguration.PollInterval = pollInterval; StreamKey = key }
 
-        log.Information("Initializing Stream monitor on database {@db} with {@config}",
-                        db, monitorConfig)
-        let monitor = DatabaseMonitor(db, monitorConfig, log)
+                log.Information("Initializing Stream monitor on database {@db} with {@config}",
+                                db, monitorConfig)
 
-        monitor.Run()
-        |> Async.RunSynchronously
+                DatabaseMonitor(db, monitorConfig, log).Run()
+            )
+            |> Async.Parallel
+            |> Async.RunSynchronously
+            |> ignore
 
         // TODO: Trap kill signal, tear down poll loop and server gracefully
         0

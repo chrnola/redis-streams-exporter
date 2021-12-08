@@ -17,7 +17,8 @@ services:
       - "3000:3000"
     environment:
       REDIS_CONNECTION_STRING: "redis:6379"
-      REDIS_STREAM_KEY: "stream"
+      REDIS_STREAM_KEY: "stream,another"
+      REDIS_POLL_INTERVAL_MS: "1000"
       APP_ENABLE_VERBOSE_LOGGING: "true"
       PROMETHEUS_PORT: "3000"
     depends_on:
