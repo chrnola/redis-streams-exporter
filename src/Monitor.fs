@@ -162,7 +162,8 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration, ?logger:
         do recordStreamLevelMetrics stream
         do logger
            |> Option.iter (fun log ->
-                log.Debug("Got stream info {@first} {@last} {@length} {@groupCount} {@lastGeneratedId}",
+                log.Debug("Got stream info {@stream} {@first} {@last} {@length} {@groupCount} {@lastGeneratedId}",
+                          config.StreamKey,
                           stream.FirstEntry.Id.ToString(),
                           stream.LastEntry.Id.ToString(),
                           stream.Length,
@@ -180,8 +181,8 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration, ?logger:
             do recordGroupLevelMetrics ci.Group
             do logger
                |> Option.iter (fun log ->
-                    log.Debug("Got group info {@name} {@consumerCount} {@pendingCount} {@lastDeliveredId}",
-                              ci.Group.Name, ci.Group.ConsumerCount, ci.Group.PendingMessageCount,
+                    log.Debug("Got group info {@stream} {@name} {@consumerCount} {@pendingCount} {@lastDeliveredId}",
+                              config.StreamKey, ci.Group.Name, ci.Group.ConsumerCount, ci.Group.PendingMessageCount,
                               ci.Group.LastDeliveredId))
 
             ci.Consumers
@@ -189,14 +190,14 @@ type DatabaseMonitor(database: IDatabase, config: MonitorConfiguration, ?logger:
                 do recordConsumerLevelMetrics ci.Group.Name c
                 do logger
                    |> Option.iter (fun log ->
-                        log.Debug("Got consumer info {@name} {@pendingCount} {@idleMs}",
-                                  c.Name, c.PendingMessageCount, c.IdleTimeInMilliseconds))
+                        log.Debug("Got consumer info {@stream} {@name} {@pendingCount} {@idleMs}",
+                                  config.StreamKey, c.Name, c.PendingMessageCount, c.IdleTimeInMilliseconds))
             )
         )
     }
 
     /// The main poll loop that will run indefinitely
-    member this.Run() = async {
+    member this.Run(): Async<unit> = async {
         match! doesKeyExist () with
         | true ->
             do! pollForMetrics ()

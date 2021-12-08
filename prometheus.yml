@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 2s
+  evaluation_interval: 2s
+
+scrape_configs:
+  - job_name: redis-streams-monitor
+    honor_labels: true
+    static_configs:
+      - targets: ["redis-streams-monitor:3000"]

@@ -25,7 +25,7 @@ All configuration is handled via environment variables.
 
 | Environment Variable | Required | Description |
 | --- | --- | --- |
-| `REDIS_STREAM_KEY` | Yes | The name of the Stream to monitor. |
+| `REDIS_STREAM_KEY` | Yes | The name of the Stream(s) to monitor. Can specify multiple keys by delimiting with a semi-colon, e.g. `key-one;key-two`. |
 | `REDIS_CONNECTION_STRING` | No, defaults to "localhost" | Any valid `StackExchange.Redis` connection string, see [docs](https://stackexchange.github.io/StackExchange.Redis/Configuration.html#basic-configuration-strings). |
 | `REDIS_DATABASE` | No, defaults to "0" | The Redis database where the Stream to-be-monitored exists. |
 | `REDIS_POLL_INTERVAL_MS` | No, defaults to "10000" (10s) | The amount of time that the exporter will wait in between Redis polls. |
@@ -95,7 +95,7 @@ redis_stream_consumer_idle_time_seconds{stream="my-stream-key",group="group-c",c
 
 ## Building
 
-Requires the .NET Core SDK (3.1):
+Requires the .NET SDK (6.0):
 ```bash
 $ dotnet build src
 ```
